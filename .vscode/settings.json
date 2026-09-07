@@ -1,0 +1,28 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/package-lock.json": true
+    },
+    "[typescript]": {
+        "editor.rulers": [80, 120],
+        "js/ts.format.enabled": true,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "editor.codeActionsOnSave": {
+        "source.fixAll.ts": "always"
+    },
+    "github.copilot.enable": {
+        "*": true,
+        "dotenv": false
+    },
+    "files.associations": {
+        ".env": "dotenv"
+    }
+}
