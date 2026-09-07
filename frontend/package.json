@@ -1,8 +1,8 @@
 {
-    "name": "ts-webapp-template-frontend",
+    "name": "cis-number-matcher-frontend",
     "private": true,
     "version": "0.1.0",
-    "description": "Template frontend application",
+    "description": "CI's Number Matcher frontend application",
     "type": "module",
     "scripts": {
         "dev": "vite",
@@ -11,7 +11,7 @@
         "watch": "vite build --watch"
     },
     "dependencies": {
-        "ts-webapp-template-common": "file:../common"
+        "cis-number-matcher-common": "file:../common"
     },
     "devDependencies": {
         "@types/node": "^26.1.2",

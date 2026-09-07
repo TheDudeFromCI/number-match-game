@@ -1,8 +1,8 @@
 {
-    "name": "ts-webapp-template-common",
+    "name": "cis-number-matcher-common",
     "private": true,
     "version": "0.1.0",
-    "description": "Template common library",
+    "description": "CI's Number Matcher common library",
     "type": "module",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
