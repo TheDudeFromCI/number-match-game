@@ -11,10 +11,12 @@
         "watch": "vite build --watch"
     },
     "dependencies": {
-        "cis-number-matcher-common": "file:../common"
+        "cis-number-matcher-common": "file:../common",
+        "events": "^3.3.0"
     },
     "devDependencies": {
-        "@types/node": "^26.1.2",
+        "@types/events": "^3.0.3",
+        "@types/node": "^26.4.1",
         "typescript": "^5.5.4",
         "vite": "^5.4.2"
     }

@@ -1,10 +1,10 @@
-export const GRID_SIZE = 9
+export const GRID_SIZE = 10
 export const MIN_DIGIT = 1
 export const MAX_DIGIT = 9
 
 /** A single game instance tracked by the server. Only one instance exists at a time. */
 export interface GameInstance {
-    /** 9x9 grid of digits (1-9). A value of 0 means the cell has been matched and cleared. */
+    /** GRID_SIZE x GRID_SIZE grid of digits (1-9). A value of 0 means the cell has been matched and cleared. */
     grid: number[][]
     /** The player's current score. */
     score: number
@@ -12,6 +12,8 @@ export interface GameInstance {
     createdAt: number
     /** Timestamp (ms since epoch) when the game instance was last updated. */
     updatedAt: number
+    /** The player's highest score across all game instances. */
+    topScore: number
 }
 
 /** Generates a new `size` x `size` grid filled with random digits between `MIN_DIGIT` and `MAX_DIGIT`. */

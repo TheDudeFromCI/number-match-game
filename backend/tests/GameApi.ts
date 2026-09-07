@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { GRID_SIZE } from 'cis-number-matcher-common'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const BACKEND_DIR = join(__dirname, '..')
@@ -48,13 +49,13 @@ test('GET /api/game returns 404 when no game instance exists', async () => {
     assert.strictEqual(response.status, 404)
 })
 
-test('POST /api/game creates a new 9x9 game instance', async () => {
+test('POST /api/game creates a new nxn game instance', async () => {
     const response = await fetch(`${BASE_URL}/api/game`, { method: 'POST' })
     assert.strictEqual(response.status, 201)
 
     const body = await response.json()
-    assert.strictEqual(body.grid.length, 9)
-    assert.strictEqual(body.grid[0].length, 9)
+    assert.strictEqual(body.grid.length, GRID_SIZE)
+    assert.strictEqual(body.grid[0].length, GRID_SIZE)
     assert.strictEqual(body.score, 0)
 
     for (const row of body.grid) {

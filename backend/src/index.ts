@@ -5,8 +5,9 @@ import { createServer } from 'http'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 
-import { createRandomGrid, isValidGrid } from 'cis-number-matcher-common'
+import { isValidGrid } from 'cis-number-matcher-common'
 import type { GameInstance } from 'cis-number-matcher-common'
+import { Storage } from './Storage.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT_DIR = join(__dirname, '..', '..', '..')
@@ -14,8 +15,9 @@ const FRONTEND_DIST = join(ROOT_DIR, 'frontend', 'dist')
 
 const app = express()
 const httpServer = createServer(app)
+const storage = new Storage(join(ROOT_DIR, 'game-instance.json'))
 
-app.use(express.json({ limit: '10mb' }))
+app.use(express.json({ limit: '512kb' }))
 
 app.use((req: Request, res: Response, next: () => void) => {
     res.header('Access-Control-Allow-Origin', '*')
@@ -35,23 +37,9 @@ app.get('/api/health', async (_req: Request, res: Response) => {
     res.json({ status: 'ok' })
 })
 
-// The server only ever tracks a single game instance at a time.
-let game: GameInstance | null = null
+app.get('/api/game', async (_req: Request, res: Response) => {
+    const game = await storage.readGameInstance()
 
-function createGame(): GameInstance {
-    const now = Date.now()
-
-    game = {
-        grid: createRandomGrid(),
-        score: 0,
-        createdAt: now,
-        updatedAt: now,
-    }
-
-    return game
-}
-
-app.get('/api/game', (_req: Request, res: Response) => {
     if (!game) {
         res.status(404).json({ error: 'No game instance exists' })
         return
@@ -60,43 +48,30 @@ app.get('/api/game', (_req: Request, res: Response) => {
     res.json(game)
 })
 
-app.post('/api/game', (_req: Request, res: Response) => {
-    res.status(201).json(createGame())
-})
+app.post('/api/game', async (req: Request, res: Response) => {
+    const game = req.body as GameInstance
 
-app.put('/api/game', (req: Request, res: Response) => {
-    if (!game) {
-        res.status(404).json({ error: 'No game instance exists' })
-        return
-    }
-
-    const { grid, score } = req.body ?? {}
-
-    if (grid !== undefined && !isValidGrid(grid)) {
+    if (!game.grid || !isValidGrid(game.grid)) {
         res.status(400).json({ error: 'Invalid grid' })
         return
     }
 
-    if (score !== undefined && (typeof score !== 'number' || !Number.isInteger(score) || score < game.score)) {
+    if (typeof game.score !== 'number' || game.score < 0) {
         res.status(400).json({ error: 'Invalid score' })
         return
     }
 
-    if (grid !== undefined) {
-        game.grid = grid
+    if (typeof game.createdAt !== 'number' || typeof game.updatedAt !== 'number') {
+        res.status(400).json({ error: 'Invalid timestamps' })
+        return
     }
 
-    if (score !== undefined) {
-        game.score = score
-    }
-
-    game.updatedAt = Date.now()
-
-    res.json(game)
+    await storage.writeGameInstance(game)
+    res.status(201).json({ message: 'Game instance saved successfully' })
 })
 
-app.delete('/api/game', (_req: Request, res: Response) => {
-    game = null
+app.delete('/api/game', async (_req: Request, res: Response) => {
+    await storage.deleteGameInstance()
     res.status(204).end()
 })
 

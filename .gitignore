@@ -3,3 +3,4 @@ dist/
 .vite/
 .env
 frontend/tsconfig.tsbuildinfo
+game-instance.json
