@@ -5,6 +5,8 @@ import { EventEmitter } from 'events'
 
 export class UI extends EventEmitter {
     private cells: HTMLButtonElement[][]
+    private app: HTMLDivElement
+    private boardStage: HTMLDivElement
     private grid: HTMLDivElement
     private scoreCounter: HTMLDivElement
     private topScoreCounter: HTMLDivElement
@@ -12,36 +14,48 @@ export class UI extends EventEmitter {
     constructor() {
         super()
 
-        const app = document.createElement('div')
-        app.className = 'app'
-        document.body.appendChild(app)
+        this.app = document.createElement('div')
+        this.app.className = 'app'
+        document.body.appendChild(this.app)
 
         const header = document.createElement('header')
         header.className = 'header'
-        app.appendChild(header)
+        this.app.appendChild(header)
 
         const title = document.createElement('h1')
         title.className = 'title'
         title.textContent = "CI's Number Matcher"
         header.appendChild(title)
 
+        const stats = document.createElement('div')
+        stats.className = 'stats'
+        header.appendChild(stats)
+
         this.scoreCounter = document.createElement('div')
         this.scoreCounter.className = 'score'
-        header.appendChild(this.scoreCounter)
+        stats.appendChild(this.scoreCounter)
 
         this.topScoreCounter = document.createElement('div')
         this.topScoreCounter.className = 'top-score'
-        header.appendChild(this.topScoreCounter)
+        stats.appendChild(this.topScoreCounter)
+
+        const actions = document.createElement('div')
+        actions.className = 'actions'
+        header.appendChild(actions)
 
         const newGameButton = document.createElement('button')
         newGameButton.className = 'new-game'
         newGameButton.textContent = 'New Game'
         newGameButton.addEventListener('click', () => this.emit('newGame'))
-        header.appendChild(newGameButton)
+        actions.appendChild(newGameButton)
+
+        this.boardStage = document.createElement('div')
+        this.boardStage.className = 'board-stage'
+        this.app.appendChild(this.boardStage)
 
         this.grid = document.createElement('div')
         this.grid.className = 'grid'
-        app.appendChild(this.grid)
+        this.boardStage.appendChild(this.grid)
 
         this.cells = []
         for (let row = 0; row < GRID_SIZE; row++) {
@@ -57,6 +71,17 @@ export class UI extends EventEmitter {
 
             this.cells.push(rowCells)
         }
+
+        window.addEventListener('resize', () => this.updateLayout())
+        requestAnimationFrame(() => this.updateLayout())
+    }
+
+    private updateLayout(): void {
+        const isLandscape = window.innerWidth > window.innerHeight
+        this.app.dataset['layout'] = isLandscape ? 'landscape' : 'portrait'
+
+        const boardSize = Math.floor(Math.min(this.boardStage.clientWidth, this.boardStage.clientHeight))
+        this.app.style.setProperty('--board-size', `${Math.max(boardSize, 0)}px`)
     }
 
     render(game: Game): void {

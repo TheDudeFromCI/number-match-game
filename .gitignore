@@ -4,3 +4,4 @@ dist/
 .env
 frontend/tsconfig.tsbuildinfo
 game-instance.json
+release/

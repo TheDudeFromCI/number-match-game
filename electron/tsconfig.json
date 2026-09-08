@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "rootDir": "src",
+        "outDir": "../dist/electron",
+        "module": "nodenext",
+        "target": "ES2022",
+        "moduleResolution": "nodenext",
+        "types": ["node", "electron"],
+        "strict": true,
+        "noImplicitReturns": true,
+        "noImplicitOverride": true,
+        "noImplicitAny": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "allowSyntheticDefaultImports": true,
+        "verbatimModuleSyntax": true,
+        "isolatedModules": true,
+        "noUncheckedSideEffectImports": true,
+        "moduleDetection": "force",
+        "skipLibCheck": true
+    },
+    "include": ["src"]
+}
