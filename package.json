@@ -20,7 +20,7 @@
         "typescript": "^5.9.2"
     },
     "build": {
-        "appId": "com.ci.numbermatcher",
+        "appId": "net.whg.numbermatcher",
         "productName": "CI Number Matcher",
         "directories": {
             "output": "release"

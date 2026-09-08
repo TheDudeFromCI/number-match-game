@@ -12,6 +12,7 @@ Game.loadGame().then((game) => {
     ui.on('cellClick', (row: number, col: number) => {
         game.clickCell({ row, col })
         ui.render(game)
+        ui.playSound('click')
     })
 
     ui.on('newGame', async () => {
@@ -21,6 +22,7 @@ Game.loadGame().then((game) => {
 
     game.on('scoreUpdated', () => {
         ui.animateScoreUpdated()
+        ui.playSound('scoreUp')
     })
 
     game.on('topScoreUpdated', () => {
@@ -30,6 +32,7 @@ Game.loadGame().then((game) => {
     game.on('cellsCleared', ({ cells: [cellA, cellB], scoreIncrement }) => {
         ui.scoreUpEffect(cellA, scoreIncrement)
         ui.scoreUpEffect(cellB, scoreIncrement)
+        ui.playSound('pop')
     })
 
     game.on('lineCleared', ({ movedCells, row, scoreIncrement }) => {

@@ -1,7 +1,18 @@
+import popSoundUrl from './sounds/pop.wav'
+import clickSoundUrl from './sounds/click.wav'
+import scoreUpSoundUrl from './sounds/score-up.wav'
+
 import { GRID_SIZE } from 'cis-number-matcher-common'
 
 import type { Cell, Game } from './Game'
 import { EventEmitter } from 'events'
+
+export type SoundEffect = 'pop' | 'click' | 'scoreUp'
+const SOUND_EFFECTS: Record<SoundEffect, HTMLAudioElement> = {
+    pop: new Audio(popSoundUrl),
+    click: new Audio(clickSoundUrl),
+    scoreUp: new Audio(scoreUpSoundUrl),
+}
 
 export class UI extends EventEmitter {
     private cells: HTMLButtonElement[][]
@@ -162,5 +173,13 @@ export class UI extends EventEmitter {
             },
             { once: true },
         )
+    }
+
+    playSound(effect: SoundEffect): void {
+        const audio = SOUND_EFFECTS[effect]
+        audio.currentTime = 0
+        audio.play().catch((error) => {
+            console.error(`Failed to play sound effect "${effect}":`, error)
+        })
     }
 }
