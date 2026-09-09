@@ -12,8 +12,8 @@
     --title-size: clamp(1.3rem, 0.95rem + 1.7vmin, 2.3rem);
     --label-size: clamp(1rem, 0.85rem + 0.9vmin, 1.35rem);
     --button-size: clamp(1rem, 0.82rem + 1.1vmin, 1.35rem);
-    /* --cell-size: clamp(0.9rem, 0.5rem + 2.1vmin, 2rem); */
     --cell-size: clamp(0.9rem, 6vmin, 3rem);
+    --grid-size: 9;
 }
 
 html,
@@ -198,14 +198,53 @@ body {
 .grid {
     position: relative;
     display: grid;
-    grid-template-columns: repeat(10, 1fr);
-    grid-template-rows: repeat(10, 1fr);
+    grid-template-columns: repeat(var(--grid-size), 1fr);
+    grid-template-rows: repeat(var(--grid-size), 1fr);
     gap: clamp(2px, 0.35vmin, 4px);
     width: var(--board-size);
     height: var(--board-size);
     max-width: 100%;
     max-height: 100%;
     aspect-ratio: 1 / 1;
+}
+
+.game-over-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    text-align: center;
+    opacity: 0;
+    transform: scale(0.96);
+    pointer-events: none;
+    transition:
+        opacity 320ms ease,
+        transform 320ms ease;
+    background: radial-gradient(circle, rgba(15, 17, 23, 0.58), rgba(15, 17, 23, 0.2) 55%, transparent 78%);
+}
+
+.game-over-title {
+    font-size: clamp(1.8rem, 1.2rem + 2.5vmin, 3rem);
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    color: #f0f4fa;
+    text-shadow: 0 2px 20px rgba(15, 17, 23, 0.7);
+}
+
+.game-over-score {
+    font-size: clamp(1rem, 0.8rem + 1.1vmin, 1.45rem);
+    font-weight: 600;
+    color: #c8d0dc;
+}
+
+.grid--game-over .game-over-overlay {
+    opacity: 1;
+    transform: scale(1);
 }
 
 .cell {
@@ -221,6 +260,11 @@ body {
     border: 1px solid #2a2e3d;
     border-radius: clamp(4px, 0.7vmin, 8px);
     cursor: pointer;
+    transition:
+        color 320ms ease,
+        background-color 320ms ease,
+        border-color 320ms ease,
+        filter 320ms ease;
 }
 
 .cell:disabled {
@@ -240,6 +284,25 @@ body {
 .cell.selected {
     background-color: #4191ac;
     color: #fff;
+}
+
+.grid--game-over .cell {
+    color: #8f98a6;
+    background-color: #171a24;
+    border-color: #353b4a;
+    filter: saturate(0.35);
+}
+
+.grid--game-over .cell.empty {
+    color: rgba(143, 152, 166, 0.45);
+    background-color: rgba(23, 26, 36, 0.5);
+    border-color: rgba(53, 59, 74, 0.75);
+}
+
+.grid--game-over .cell.selected {
+    color: #a5adb9;
+    background-color: #242938;
+    border-color: #40475a;
 }
 
 .cell--related {

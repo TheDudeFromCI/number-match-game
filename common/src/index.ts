@@ -1,4 +1,4 @@
-export const GRID_SIZE = 10
+export const GRID_SIZE = 9
 export const MIN_DIGIT = 1
 export const MAX_DIGIT = 9
 

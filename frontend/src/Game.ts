@@ -24,6 +24,10 @@ export class Game extends EventEmitter {
     private constructor(data: GameInstance) {
         super()
         this._data = data
+
+        if (this.checkIfDeadEnd()) {
+            this.emit('deadEnd')
+        }
     }
 
     selectCell(cell: Cell): void {
@@ -55,13 +59,18 @@ export class Game extends EventEmitter {
     }
 
     incrementScore(amount: number): void {
+        const isNewTopScore =
+            this._data.topScore > 0 &&
+            this._data.score < this._data.topScore &&
+            this._data.score + amount >= this._data.topScore
+
         this._data.score += amount
         this._data.updatedAt = Date.now()
         this.emit('scoreUpdated', { score: this._data.score, increment: amount })
 
         if (this._data.score > this._data.topScore || this._data.topScore == null) {
             this._data.topScore = this._data.score
-            this.emit('topScoreUpdated', { topScore: this._data.topScore })
+            this.emit('topScoreUpdated', { topScore: this._data.topScore, isNewTopScore })
         }
     }
 
@@ -100,6 +109,10 @@ export class Game extends EventEmitter {
 
             this.deselectCell()
             await saveGameInstance(this._data)
+
+            if (this.checkIfDeadEnd()) {
+                this.emit('deadEnd')
+            }
         } else {
             this.selectCell(target)
         }
@@ -118,9 +131,7 @@ export class Game extends EventEmitter {
         if (this.checkColumn(a, b)) return true
         if (this.checkColumnWrap(a, b)) return true
         if (this.checkLeftDiagonal(a, b)) return true
-        if (this.checkLeftDiagonalWrap(a, b)) return true
         if (this.checkRightDiagonal(a, b)) return true
-        if (this.checkRightDiagonalWrap(a, b)) return true
         return false
     }
 
@@ -260,38 +271,6 @@ export class Game extends EventEmitter {
         return true
     }
 
-    private checkLeftDiagonalWrap(a: Cell, b: Cell): boolean {
-        const rowDiff = b.row - a.row
-        const colDiff = b.col - a.col
-
-        if (Math.abs(rowDiff) !== Math.abs(colDiff)) return false
-
-        const rowLength = this._data.grid.length
-        const colLength = this._data.grid[0].length
-
-        const rowStep = rowDiff > 0 ? 1 : -1
-        const colStep = colDiff > 0 ? 1 : -1
-
-        let row = (a.row + rowStep + rowLength) % rowLength
-        let col = (a.col + colStep + colLength) % colLength
-
-        while (row !== b.row && col !== b.col) {
-            if (this.getCellValue({ row, col }) !== 0) {
-                return false
-            }
-            row = (row + rowStep + rowLength) % rowLength
-            col = (col + colStep + colLength) % colLength
-        }
-
-        const score = 2 ** Math.abs(rowDiff)
-        this.setCellValue(a, 0)
-        this.setCellValue(b, 0)
-        this.incrementScore(score)
-        this.emit('cellsCleared', { cells: [a, b], scoreIncrement: score })
-
-        return true
-    }
-
     private checkRightDiagonal(a: Cell, b: Cell): boolean {
         const rowDiff = b.row - a.row
         const colDiff = b.col - a.col
@@ -310,38 +289,6 @@ export class Game extends EventEmitter {
             }
             row += rowStep
             col += colStep
-        }
-
-        const score = 2 ** Math.abs(rowDiff)
-        this.setCellValue(a, 0)
-        this.setCellValue(b, 0)
-        this.incrementScore(score)
-        this.emit('cellsCleared', { cells: [a, b], scoreIncrement: score })
-
-        return true
-    }
-
-    private checkRightDiagonalWrap(a: Cell, b: Cell): boolean {
-        const rowDiff = b.row - a.row
-        const colDiff = b.col - a.col
-
-        if (Math.abs(rowDiff) !== Math.abs(colDiff)) return false
-
-        const rowLength = this._data.grid.length
-        const colLength = this._data.grid[0].length
-
-        const rowStep = rowDiff > 0 ? 1 : -1
-        const colStep = colDiff > 0 ? -1 : 1
-
-        let row = (a.row + rowStep + rowLength) % rowLength
-        let col = (a.col + colStep + colLength) % colLength
-
-        while (row !== b.row && col !== b.col) {
-            if (this.getCellValue({ row, col }) !== 0) {
-                return false
-            }
-            row = (row + rowStep + rowLength) % rowLength
-            col = (col + colStep + colLength) % colLength
         }
 
         const score = 2 ** Math.abs(rowDiff)
@@ -389,6 +336,10 @@ export class Game extends EventEmitter {
         this.selected = null
         await saveGameInstance(this._data)
     }
+
+    checkIfDeadEnd(): boolean {
+        return isDeadEnd(this._data.grid)
+    }
 }
 
 function createNewGameInstance(topScore: number): GameInstance {
@@ -403,4 +354,85 @@ function createNewGameInstance(topScore: number): GameInstance {
 
 function matches(a: Cell, b: Cell): boolean {
     return a.row === b.row && a.col === b.col
+}
+
+function isDeadEnd(grid: number[][]): boolean {
+    for (let row = 0; row < GRID_SIZE; row++) {
+        for (let col = 0; col < GRID_SIZE; col++) {
+            if (!isCellDeadEnd({ row, col }, grid)) return false
+        }
+    }
+
+    return true
+}
+
+function isCellDeadEnd(cell: Cell, grid: number[][]): boolean {
+    const value = grid[cell.row][cell.col]
+    if (value === 0) return true
+
+    // Check left
+    for (let col = cell.col - 1; col > cell.col - GRID_SIZE; col--) {
+        const check = grid[cell.row][(col + GRID_SIZE) % GRID_SIZE]
+        if (check === 0) continue
+        if (check === value || check + value === 10) return false
+        else break
+    }
+
+    // Check right
+    for (let col = cell.col + 1; col < cell.col + GRID_SIZE; col++) {
+        const check = grid[cell.row][col % GRID_SIZE]
+        if (check === 0) continue
+        if (check === value || check + value === 10) return false
+        else break
+    }
+
+    // Check up
+    for (let row = cell.row - 1; row > cell.row - GRID_SIZE; row--) {
+        const check = grid[(row + GRID_SIZE) % GRID_SIZE][cell.col]
+        if (check === 0) continue
+        if (check === value || check + value === 10) return false
+        else break
+    }
+
+    // Check down
+    for (let row = cell.row + 1; row < cell.row + GRID_SIZE; row++) {
+        const check = grid[row % GRID_SIZE][cell.col]
+        if (check === 0) continue
+        if (check === value || check + value === 10) return false
+        else break
+    }
+
+    // Check up left diagonal
+    for (let row = cell.row - 1, col = cell.col - 1; row >= 0 && col >= 0; row--, col--) {
+        const check = grid[row][col]
+        if (check === 0) continue
+        if (check === value || check + value === 10) return false
+        else break
+    }
+
+    // Check up right diagonal
+    for (let row = cell.row - 1, col = cell.col + 1; row >= 0 && col < GRID_SIZE; row--, col++) {
+        const check = grid[row][col]
+        if (check === 0) continue
+        if (check === value || check + value === 10) return false
+        else break
+    }
+
+    // Check down left diagonal
+    for (let row = cell.row + 1, col = cell.col - 1; row < GRID_SIZE && col >= 0; row++, col--) {
+        const check = grid[row][col]
+        if (check === 0) continue
+        if (check === value || check + value === 10) return false
+        else break
+    }
+
+    // Check down right diagonal
+    for (let row = cell.row + 1, col = cell.col + 1; row < GRID_SIZE && col < GRID_SIZE; row++, col++) {
+        const check = grid[row][col]
+        if (check === 0) continue
+        if (check === value || check + value === 10) return false
+        else break
+    }
+
+    return true
 }

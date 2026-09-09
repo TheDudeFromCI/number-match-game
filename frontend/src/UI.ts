@@ -1,17 +1,23 @@
 import popSoundUrl from './sounds/pop.wav'
 import clickSoundUrl from './sounds/click.wav'
 import scoreUpSoundUrl from './sounds/score-up.wav'
+import bigScoreUpSoundUrl from './sounds/big-score-up.wav'
+import highScoreSoundUrl from './sounds/high-score.wav'
+import gameOverSoundUrl from './sounds/game-over.wav'
 
 import { GRID_SIZE } from 'cis-number-matcher-common'
 
 import type { Cell, Game } from './Game'
 import { EventEmitter } from 'events'
 
-export type SoundEffect = 'pop' | 'click' | 'scoreUp'
+export type SoundEffect = 'pop' | 'click' | 'scoreUp' | 'bigScoreUp' | 'highScore' | 'gameOver'
 const SOUND_EFFECTS: Record<SoundEffect, HTMLAudioElement> = {
     pop: new Audio(popSoundUrl),
     click: new Audio(clickSoundUrl),
     scoreUp: new Audio(scoreUpSoundUrl),
+    bigScoreUp: new Audio(bigScoreUpSoundUrl),
+    highScore: new Audio(highScoreSoundUrl),
+    gameOver: new Audio(gameOverSoundUrl),
 }
 
 export class UI extends EventEmitter {
@@ -19,6 +25,8 @@ export class UI extends EventEmitter {
     private app: HTMLDivElement
     private boardStage: HTMLDivElement
     private grid: HTMLDivElement
+    private gameOverOverlay: HTMLDivElement
+    private gameOverScore: HTMLParagraphElement
     private scoreCounter: HTMLDivElement
     private topScoreCounter: HTMLDivElement
 
@@ -68,6 +76,20 @@ export class UI extends EventEmitter {
         this.grid.className = 'grid'
         this.boardStage.appendChild(this.grid)
 
+        this.gameOverOverlay = document.createElement('div')
+        this.gameOverOverlay.className = 'game-over-overlay'
+
+        const gameOverTitle = document.createElement('h2')
+        gameOverTitle.className = 'game-over-title'
+        gameOverTitle.textContent = 'Game Over'
+        this.gameOverOverlay.appendChild(gameOverTitle)
+
+        this.gameOverScore = document.createElement('p')
+        this.gameOverScore.className = 'game-over-score'
+        this.gameOverOverlay.appendChild(this.gameOverScore)
+
+        this.grid.appendChild(this.gameOverOverlay)
+
         this.cells = []
         for (let row = 0; row < GRID_SIZE; row++) {
             const rowCells: HTMLButtonElement[] = []
@@ -96,8 +118,12 @@ export class UI extends EventEmitter {
     }
 
     render(game: Game): void {
+        const isGameOver = game.checkIfDeadEnd()
+
         this.scoreCounter.textContent = `Score: ${game.data.score}`
         this.topScoreCounter.textContent = `🏆 Top: ${game.data.topScore}`
+        this.gameOverScore.textContent = `Final Score: ${game.data.score}`
+        this.grid.classList.toggle('grid--game-over', isGameOver)
 
         for (let row = 0; row < GRID_SIZE; row++) {
             for (let col = 0; col < GRID_SIZE; col++) {
@@ -106,7 +132,7 @@ export class UI extends EventEmitter {
                 if (!cell) continue
 
                 cell.textContent = value === 0 ? '' : String(value)
-                cell.disabled = value === 0
+                cell.disabled = value === 0 || isGameOver
                 cell.classList.toggle('empty', value === 0)
                 cell.classList.toggle('selected', game.selectedCell?.row === row && game.selectedCell?.col === col)
             }
@@ -176,6 +202,11 @@ export class UI extends EventEmitter {
     }
 
     playSound(effect: SoundEffect): void {
+        for (const audio of Object.values(SOUND_EFFECTS)) {
+            audio.pause()
+            audio.currentTime = 0
+        }
+
         const audio = SOUND_EFFECTS[effect]
         audio.currentTime = 0
         audio.play().catch((error) => {

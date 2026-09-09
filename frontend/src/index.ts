@@ -25,8 +25,9 @@ Game.loadGame().then((game) => {
         ui.playSound('scoreUp')
     })
 
-    game.on('topScoreUpdated', () => {
+    game.on('topScoreUpdated', ({ isNewTopScore }) => {
         ui.animateTopScoreUpdated()
+        if (isNewTopScore) ui.playSound('highScore')
     })
 
     game.on('cellsCleared', ({ cells: [cellA, cellB], scoreIncrement }) => {
@@ -38,10 +39,16 @@ Game.loadGame().then((game) => {
     game.on('lineCleared', ({ movedCells, row, scoreIncrement }) => {
         ui.animateLineClear(movedCells)
         ui.scoreUpEffect({ row, col: GRID_SIZE }, scoreIncrement)
+        ui.playSound('bigScoreUp')
 
         // for (let col = 0; col < GRID_SIZE; col++) {
         //     const cell = { row: movedCells[0]?.to.row ?? 0, col }
         //     ui.scoreUpEffect(cell, scoreIncrement)
         // }
+    })
+
+    game.on('deadEnd', () => {
+        ui.playSound('gameOver')
+        ui.render(game)
     })
 })
