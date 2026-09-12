@@ -1,6 +1,10 @@
 import fs from 'fs/promises'
 import type { GameInstance } from 'cis-number-matcher-common'
 
+interface FileError {
+    code: string
+}
+
 export class Storage {
     private readonly filePath: string
 
@@ -13,7 +17,7 @@ export class Storage {
             const data = await fs.readFile(this.filePath, 'utf-8')
             return JSON.parse(data) as GameInstance
         } catch (error) {
-            if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            if ((error as FileError).code === 'ENOENT') {
                 return null
             }
             throw error
@@ -29,7 +33,7 @@ export class Storage {
         try {
             await fs.unlink(this.filePath)
         } catch (error) {
-            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+            if ((error as FileError).code !== 'ENOENT') {
                 throw error
             }
         }

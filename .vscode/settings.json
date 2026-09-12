@@ -16,8 +16,11 @@
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
+    "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+    "eslint.lintTask.enable": true,
+    "js/ts.tsserver.experimental.enableProjectDiagnostics": true,
     "editor.codeActionsOnSave": {
-        "source.fixAll.ts": "always"
+        "source.fixAll.eslint": "always"
     },
     "github.copilot.enable": {
         "*": true,

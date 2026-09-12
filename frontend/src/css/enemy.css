@@ -1,0 +1,112 @@
+.enemy {
+    width: 50%;
+    aspect-ratio: 1/1;
+}
+
+.enemy-name {
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.enemy-container {
+    width: 100%;
+    height: 50%;
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.enemy-health-bar {
+    width: 80%;
+    height: 20px;
+    background-color: #ccc;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.enemy-health-bar-fill {
+    height: 100%;
+    background-color: #f00;
+    transition: width 0.3s ease-in-out;
+}
+
+.enemy.sprite {
+    background-color: #fff;
+    background-size: 200% 400%;
+    mask-size: 200% 400%;
+}
+
+.enemy.sprite[enemy='banana-virus'] {
+    background-image: url('../sprites/banana-virus.png');
+    mask-image: url('../sprites/banana-virus.png');
+}
+
+.enemy.sprite[enemy-state='idle'][enemy-frame='0'] {
+    background-position: 0 0;
+    mask-position: 0 0;
+}
+
+.enemy.sprite[enemy-state='idle'][enemy-frame='1'] {
+    background-position: 100% 0;
+    mask-position: 100% 0;
+}
+
+.enemy.sprite[enemy-state='damage'][enemy-frame='0'] {
+    background-position: 0 33%;
+    mask-position: 0 33%;
+}
+
+.enemy.sprite[enemy-state='damage'][enemy-frame='1'] {
+    background-position: 100% 33%;
+    mask-position: 100% 33%;
+}
+
+.enemy.sprite[enemy-state='rage'][enemy-frame='0'] {
+    background-position: 0 66%;
+    mask-position: 0 66%;
+}
+
+.enemy.sprite[enemy-state='rage'][enemy-frame='1'] {
+    background-position: 100% 66%;
+    mask-position: 100% 66%;
+}
+
+.enemy.sprite[enemy-state='attack'][enemy-frame='0'] {
+    background-position: 100% 100%;
+    mask-position: 100% 100%;
+}
+
+.enemy.sprite[enemy-state='attack'][enemy-frame='1'] {
+    background-position: 100% 100%;
+    mask-position: 100% 100%;
+}
+
+.enemy.sprite[enemy-state='damage'] {
+    /* flash white */
+    animation: flash-white 0.25s linear;
+}
+
+@keyframes flash-white {
+    0% {
+        filter: brightness(5);
+    }
+    20% {
+        filter: brightness(1);
+    }
+    40% {
+        filter: brightness(5);
+    }
+    60% {
+        filter: brightness(1);
+    }
+    80% {
+        filter: brightness(5);
+    }
+    100% {
+        filter: brightness(1);
+    }
+}

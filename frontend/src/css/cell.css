@@ -1,0 +1,72 @@
+.number-cell.sprite {
+    background-image: url('../sprites/number-cells.png');
+    background-color: #99e550ff;
+    background-size: 300% 300%;
+    mask-image: url('../sprites/number-cells.png');
+    mask-size: 300% 300%;
+}
+
+.number-cell.sprite.disabled {
+    background-color: hsla(91, 0%, 61%);
+}
+
+.number-cell.sprite[cell-value='1'] {
+    background-position: 0px 0px;
+    mask-position: 0px 0px;
+}
+
+.number-cell.sprite[cell-value='2'] {
+    background-position: 50% 0;
+    mask-position: 50% 0;
+}
+
+.number-cell.sprite[cell-value='3'] {
+    background-position: 100% 0;
+    mask-position: 100% 0;
+}
+
+.number-cell.sprite[cell-value='4'] {
+    background-position: 0 50%;
+    mask-position: 0 50%;
+}
+
+.number-cell.sprite[cell-value='5'] {
+    background-position: 50% 50%;
+    mask-position: 50% 50%;
+}
+
+.number-cell.sprite[cell-value='6'] {
+    background-position: 100% 50%;
+    mask-position: 100% 50%;
+}
+
+.number-cell.sprite[cell-value='7'] {
+    background-position: 0 100%;
+    mask-position: 0 100%;
+}
+
+.number-cell.sprite[cell-value='8'] {
+    background-position: 50% 100%;
+    mask-position: 50% 100%;
+}
+
+.number-cell.sprite[cell-value='9'] {
+    background-position: 100% 100%;
+    mask-position: 100% 100%;
+}
+
+.number-cell.sprite.selected-cell:not(.disabled) {
+    background-color: #fff;
+}
+
+.empty-cell.sprite {
+    background-image: url('../sprites/empty-cell.png');
+    background-color: #37946e;
+    background-size: 100% 100%;
+    mask-image: url('../sprites/empty-cell.png');
+    mask-size: 100% 100%;
+}
+
+.empty-cell.sprite.disabled {
+    background-color: hsla(91, 0%, 61%);
+}

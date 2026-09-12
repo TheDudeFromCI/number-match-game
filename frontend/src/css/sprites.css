@@ -1,0 +1,7 @@
+.sprite {
+    background-repeat: no-repeat;
+    background-blend-mode: multiply;
+    image-rendering: pixelated;
+    mask-repeat: no-repeat;
+    mask-mode: alpha;
+}

@@ -1,40 +1,51 @@
 import { createRandomGrid, GRID_SIZE, type GameInstance } from 'cis-number-matcher-common'
 import { fetchGameInstance, saveGameInstance } from './API'
-import { EventEmitter } from 'events'
+import type { GameEvents } from './GameEvents'
 
-export interface Cell {
+const LINE_CLEAR_SCORE = 50
+const DUAL_LINE_CLEAR_SCORE = 150
+
+export interface Pos {
     row: number
     col: number
 }
 
-export class Game extends EventEmitter {
+export class Game {
+    private readonly events: GameEvents
     private _data: GameInstance
-    private selected: Cell | null = null
+    private selected: Pos | null = null
 
-    static async loadGame(): Promise<Game> {
+    static async loadGame(events: GameEvents): Promise<Game> {
         const gameInstance = await fetchGameInstance()
 
-        if (!gameInstance) {
-            return new Game(createNewGameInstance(0))
+        let game
+        if (!gameInstance) game = new Game(createNewGameInstance(0), events)
+        else game = new Game(gameInstance, events)
+
+        await game.events.onGameLoaded(game.data)
+
+        if (game.checkIfDeadEnd()) {
+            await game.events.onDeadEnd(game.data)
         }
 
-        return new Game(gameInstance)
+        return game
     }
 
-    private constructor(data: GameInstance) {
-        super()
+    private constructor(data: GameInstance, events: GameEvents) {
+        this.events = events
         this._data = data
-
-        if (this.checkIfDeadEnd()) {
-            this.emit('deadEnd')
-        }
     }
 
-    selectCell(cell: Cell): void {
+    private async selectCell(cell: Pos): Promise<void> {
+        if (this.selected && matches(this.selected, cell)) return
+        await this.deselectCell()
         this.selected = cell
+        await this.events.onCellSelected(cell, true)
     }
 
-    deselectCell(): void {
+    async deselectCell(): Promise<void> {
+        if (this.selected === null) return
+        await this.events.onCellSelected(this.selected, false)
         this.selected = null
     }
 
@@ -42,15 +53,15 @@ export class Game extends EventEmitter {
         return this._data
     }
 
-    get selectedCell(): Cell | null {
+    get selectedCell(): Pos | null {
         return this.selected
     }
 
-    getCellValue(cell: Cell): number {
-        return this._data.grid[cell.row]?.[cell.col] ?? 0
+    getCellValue(cell: Pos): number {
+        return this._data.grid[cell.row][cell.col]
     }
 
-    setCellValue(cell: Cell, value: number): void {
+    private setCellValue(cell: Pos, value: number): void {
         if (!this._data.grid[cell.row]) {
             this._data.grid[cell.row] = []
         }
@@ -58,7 +69,7 @@ export class Game extends EventEmitter {
         this._data.updatedAt = Date.now()
     }
 
-    incrementScore(amount: number): void {
+    private async incrementScore(amount: number): Promise<void> {
         const isNewTopScore =
             this._data.topScore > 0 &&
             this._data.score < this._data.topScore &&
@@ -66,92 +77,94 @@ export class Game extends EventEmitter {
 
         this._data.score += amount
         this._data.updatedAt = Date.now()
-        this.emit('scoreUpdated', { score: this._data.score, increment: amount })
+        await this.events.onScoreUp(this._data.score, amount)
 
         if (this._data.score > this._data.topScore || this._data.topScore == null) {
             this._data.topScore = this._data.score
-            this.emit('topScoreUpdated', { topScore: this._data.topScore, isNewTopScore })
+            await this.events.onTopScoreUp(this._data.topScore, isNewTopScore)
         }
     }
 
-    async clickCell(target: Cell): Promise<void> {
+    public async clickCell(target: Pos): Promise<void> {
         const value = this.getCellValue(target)
-        if (value === 0) return
+        if (value <= 0) return
 
         if (!this.selected) {
-            this.selectCell(target)
+            await this.selectCell(target)
             return
         }
 
         if (matches(this.selected, target)) {
-            this.deselectCell()
+            await this.deselectCell()
             return
         }
 
-        if (this.attemptClear(this.selected, target)) {
+        if (await this.attemptClear(this.selected, target)) {
             const minRow = Math.min(this.selected.row, target.row)
             const maxRow = Math.max(this.selected.row, target.row)
 
             if (minRow === maxRow) {
-                const movedCells = this.checkLineClear(minRow)
-                if (movedCells) {
-                    this.emit('lineCleared', { scoreIncrement: 10, row: minRow, movedCells })
+                if (this.checkLineClear(minRow)) {
+                    await this.incrementScore(LINE_CLEAR_SCORE)
+                    await this.events.onLineClear(minRow, this._data.grid[0])
                 }
             } else {
-                const movedCellsA = this.checkLineClear(minRow)
-                const movedCellsB = this.checkLineClear(maxRow)
+                const aCleared = this.checkLineClear(minRow)
+                const bCleared = this.checkLineClear(maxRow)
 
-                if (movedCellsA || movedCellsB) {
-                    const movedCells = [...(movedCellsA ?? []), ...(movedCellsB ?? [])]
-                    this.emit('lineCleared', { scoreIncrement: 10, row: maxRow, movedCells })
+                if (aCleared && bCleared) {
+                    await this.incrementScore(DUAL_LINE_CLEAR_SCORE)
+                    await this.events.onDualLineClear(minRow, maxRow, [this._data.grid[1], this._data.grid[0]])
+                } else if (aCleared) {
+                    await this.incrementScore(LINE_CLEAR_SCORE)
+                    await this.events.onLineClear(minRow, this._data.grid[0])
+                } else if (bCleared) {
+                    await this.incrementScore(LINE_CLEAR_SCORE)
+                    await this.events.onLineClear(maxRow, this._data.grid[0])
                 }
             }
 
-            this.deselectCell()
+            await this.deselectCell()
             await saveGameInstance(this._data)
 
             if (this.checkIfDeadEnd()) {
-                this.emit('deadEnd')
+                await this.events.onDeadEnd(this._data)
             }
         } else {
-            this.selectCell(target)
+            await this.selectCell(target)
         }
     }
 
-    private attemptClear(a: Cell, b: Cell): boolean {
-        const aValue = this.getCellValue(a)
-        const bValue = this.getCellValue(b)
-
-        if (matches(a, b)) return false
-        if (aValue === 0 || bValue === 0) return false
+    private async attemptClear(a: Pos, b: Pos): Promise<boolean> {
         if (!this.confirmPair(a, b)) return false
-
-        if (this.checkRow(a, b)) return true
-        if (this.checkRowWrap(a, b)) return true
-        if (this.checkColumn(a, b)) return true
-        if (this.checkColumnWrap(a, b)) return true
-        if (this.checkLeftDiagonal(a, b)) return true
-        if (this.checkRightDiagonal(a, b)) return true
+        if (await this.checkRow(a, b)) return true
+        if (await this.checkRowWrap(a, b)) return true
+        if (await this.checkColumn(a, b)) return true
+        if (await this.checkColumnWrap(a, b)) return true
+        if (await this.checkLeftDiagonal(a, b)) return true
+        if (await this.checkRightDiagonal(a, b)) return true
         return false
     }
 
-    private confirmPair(a: Cell, b: Cell): boolean {
+    private confirmPair(a: Pos, b: Pos): boolean {
+        if (matches(a, b)) return false
+
         const aValue = this.getCellValue(a)
         const bValue = this.getCellValue(b)
 
-        if (aValue === 0 || bValue === 0) return false
+        if (aValue <= 0 || bValue <= 0) return false
         if (aValue === bValue) return true
         return aValue + bValue === 10
     }
 
-    private checkRow(a: Cell, b: Cell): boolean {
+    private async checkRow(a: Pos, b: Pos): Promise<boolean> {
         if (a.row !== b.row) return false
 
         const min = Math.min(a.col, b.col)
         const max = Math.max(a.col, b.col)
 
         for (let col = min + 1; col < max; col++) {
-            if (this.getCellValue({ row: a.row, col }) !== 0) {
+            if (this.getCellValue({ row: a.row, col }) > 0) {
                 return false
             }
         }
@@ -159,13 +172,12 @@ export class Game extends EventEmitter {
         const score = 2 ** (max - min)
         this.setCellValue(a, 0)
         this.setCellValue(b, 0)
-        this.incrementScore(score)
-        this.emit('cellsCleared', { cells: [a, b], scoreIncrement: score })
-
+        await this.incrementScore(score)
+        await this.events.onClearCells([a, b])
         return true
     }
 
-    private checkRowWrap(a: Cell, b: Cell): boolean {
+    private async checkRowWrap(a: Pos, b: Pos): Promise<boolean> {
         if (a.row !== b.row) return false
 
         const rowLength = this._data.grid[a.row].length
@@ -173,13 +185,13 @@ export class Game extends EventEmitter {
         const max = Math.max(a.col, b.col)
 
         for (let col = max + 1; col < rowLength; col++) {
-            if (this.getCellValue({ row: a.row, col }) !== 0) {
+            if (this.getCellValue({ row: a.row, col }) > 0) {
                 return false
             }
         }
 
         for (let col = 0; col < min; col++) {
-            if (this.getCellValue({ row: a.row, col }) !== 0) {
+            if (this.getCellValue({ row: a.row, col }) > 0) {
                 return false
             }
         }
@@ -187,20 +199,20 @@ export class Game extends EventEmitter {
         const score = 2 ** (rowLength - (max - min))
         this.setCellValue(a, 0)
         this.setCellValue(b, 0)
-        this.incrementScore(score)
-        this.emit('cellsCleared', { cells: [a, b], scoreIncrement: score })
+        await this.incrementScore(score)
+        await this.events.onClearCells([a, b])
 
         return true
     }
 
-    private checkColumn(a: Cell, b: Cell): boolean {
+    private async checkColumn(a: Pos, b: Pos): Promise<boolean> {
         if (a.col !== b.col) return false
 
         const min = Math.min(a.row, b.row)
         const max = Math.max(a.row, b.row)
 
         for (let row = min + 1; row < max; row++) {
-            if (this.getCellValue({ row, col: a.col }) !== 0) {
+            if (this.getCellValue({ row, col: a.col }) > 0) {
                 return false
             }
         }
@@ -208,13 +220,12 @@ export class Game extends EventEmitter {
         const score = 2 ** (max - min)
         this.setCellValue(a, 0)
         this.setCellValue(b, 0)
-        this.incrementScore(score)
-        this.emit('cellsCleared', { cells: [a, b], scoreIncrement: score })
-
+        await this.incrementScore(score)
+        await this.events.onClearCells([a, b])
         return true
     }
 
-    private checkColumnWrap(a: Cell, b: Cell): boolean {
+    private async checkColumnWrap(a: Pos, b: Pos): Promise<boolean> {
         if (a.col !== b.col) return false
 
         const colLength = this._data.grid.length
@@ -222,13 +233,13 @@ export class Game extends EventEmitter {
         const max = Math.max(a.row, b.row)
 
         for (let row = max + 1; row < colLength; row++) {
-            if (this.getCellValue({ row, col: a.col }) !== 0) {
+            if (this.getCellValue({ row, col: a.col }) > 0) {
                 return false
             }
         }
 
         for (let row = 0; row < min; row++) {
-            if (this.getCellValue({ row, col: a.col }) !== 0) {
+            if (this.getCellValue({ row, col: a.col }) > 0) {
                 return false
             }
         }
@@ -236,13 +247,12 @@ export class Game extends EventEmitter {
         const score = 2 ** (colLength - (max - min))
         this.setCellValue(a, 0)
         this.setCellValue(b, 0)
-        this.incrementScore(score)
-        this.emit('cellsCleared', { cells: [a, b], scoreIncrement: score })
-
+        await this.incrementScore(score)
+        await this.events.onClearCells([a, b])
         return true
     }
 
-    private checkLeftDiagonal(a: Cell, b: Cell): boolean {
+    private async checkLeftDiagonal(a: Pos, b: Pos): Promise<boolean> {
         const rowDiff = b.row - a.row
         const colDiff = b.col - a.col
 
@@ -255,7 +265,7 @@ export class Game extends EventEmitter {
         let col = a.col + colStep
 
         while (row !== b.row && col !== b.col) {
-            if (this.getCellValue({ row, col }) !== 0) {
+            if (this.getCellValue({ row, col }) > 0) {
                 return false
             }
             row += rowStep
@@ -265,13 +275,12 @@ export class Game extends EventEmitter {
         const score = 2 ** Math.abs(rowDiff)
         this.setCellValue(a, 0)
         this.setCellValue(b, 0)
-        this.incrementScore(score)
-        this.emit('cellsCleared', { cells: [a, b], scoreIncrement: score })
-
+        await this.incrementScore(score)
+        await this.events.onClearCells([a, b])
         return true
     }
 
-    private checkRightDiagonal(a: Cell, b: Cell): boolean {
+    private async checkRightDiagonal(a: Pos, b: Pos): Promise<boolean> {
         const rowDiff = b.row - a.row
         const colDiff = b.col - a.col
 
@@ -284,7 +293,7 @@ export class Game extends EventEmitter {
         let col = a.col + colStep
 
         while (row !== b.row && col !== b.col) {
-            if (this.getCellValue({ row, col }) !== 0) {
+            if (this.getCellValue({ row, col }) > 0) {
                 return false
             }
             row += rowStep
@@ -294,27 +303,23 @@ export class Game extends EventEmitter {
         const score = 2 ** Math.abs(rowDiff)
         this.setCellValue(a, 0)
         this.setCellValue(b, 0)
-        this.incrementScore(score)
-        this.emit('cellsCleared', { cells: [a, b], scoreIncrement: score })
-
+        await this.incrementScore(score)
+        await this.events.onClearCells([a, b])
         return true
     }
 
-    private checkLineClear(row: number): Array<{ from: Cell; to: Cell }> | null {
+    private checkLineClear(row: number): boolean {
         for (let col = 0; col < GRID_SIZE; col++) {
-            if (this.getCellValue({ row, col }) !== 0) {
-                return null
+            if (this.getCellValue({ row, col }) > 0) {
+                return false
             }
         }
-
-        const movedCells: Array<{ from: Cell; to: Cell }> = []
 
         // shift all rows above down by one
         for (let r = row; r > 0; r--) {
             for (let col = 0; col < GRID_SIZE; col++) {
                 const fromCell = { row: r - 1, col }
                 const toCell = { row: r, col }
-                movedCells.push({ from: fromCell, to: toCell })
                 const valueAbove = this.getCellValue(fromCell)
                 this.setCellValue(toCell, valueAbove)
             }
@@ -324,16 +329,15 @@ export class Game extends EventEmitter {
         for (let col = 0; col < GRID_SIZE; col++) {
             const newValue = Math.floor(Math.random() * 9) + 1
             this.setCellValue({ row: 0, col }, newValue)
-            movedCells.push({ from: { row: -1, col }, to: { row: 0, col } })
         }
 
-        this.incrementScore(10)
-        return movedCells
+        return true
     }
 
     async resetGame(): Promise<void> {
+        await this.deselectCell()
         this._data = createNewGameInstance(this._data.topScore)
-        this.selected = null
+        await this.events.onGameLoaded(this._data)
         await saveGameInstance(this._data)
     }
 
@@ -352,7 +356,7 @@ function createNewGameInstance(topScore: number): GameInstance {
     } as GameInstance
 }
 
-function matches(a: Cell, b: Cell): boolean {
+function matches(a: Pos, b: Pos): boolean {
     return a.row === b.row && a.col === b.col
 }
 
@@ -366,7 +370,7 @@ function isDeadEnd(grid: number[][]): boolean {
     return true
 }
 
-function isCellDeadEnd(cell: Cell, grid: number[][]): boolean {
+function isCellDeadEnd(cell: Pos, grid: number[][]): boolean {
     const value = grid[cell.row][cell.col]
     if (value === 0) return true
 

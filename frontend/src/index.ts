@@ -1,54 +1,51 @@
-import { GRID_SIZE } from 'cis-number-matcher-common'
 import './css/global.css'
 
-import { Game } from './Game'
-import { UI } from './UI'
+import type { GameInstance } from 'cis-number-matcher-common'
+import { Game, type Pos } from './Game'
+import type { GameEvents } from './GameEvents'
+import { AppUI } from './ui/AppUI'
 
-const ui = new UI()
+const app = new AppUI()
 
-Game.loadGame().then((game) => {
-    ui.render(game)
+const events: GameEvents = {
+    onGameLoaded: async function (game: GameInstance): Promise<void> {
+        app.renderGame(game)
+    },
 
-    ui.on('cellClick', (row: number, col: number) => {
-        game.clickCell({ row, col })
-        ui.render(game)
-        ui.playSound('click')
+    onDeadEnd: async function (_game: GameInstance): Promise<void> {
+        await app.gameOver()
+    },
+
+    onCellSelected: async function (cell: Pos, selected: boolean): Promise<void> {
+        app.setCellSelected(cell, selected)
+    },
+
+    onScoreUp: async function (_score: number, _increment: number): Promise<void> {},
+
+    onTopScoreUp: async function (_topScore: number, _isNewTopScore: boolean): Promise<void> {},
+
+    onLineClear: async function (row: number, newRow: number[]): Promise<void> {
+        await app.clearRow(row, newRow)
+    },
+
+    onDualLineClear: async function (row1: number, row2: number, newRows: number[][]): Promise<void> {
+        await app.clearRow(row1, newRows[0])
+        await app.clearRow(row2, newRows[1])
+    },
+
+    onClearCells: async function (cells: Pos[]): Promise<void> {
+        await app.clearCells(cells)
+    },
+}
+
+Game.loadGame(events)
+    .then((game) => {
+        console.log('Game loaded:', game)
+
+        app.addListener('cellClick', async (row: number, col: number) => {
+            await game.clickCell({ row, col })
+        })
     })
-
-    ui.on('newGame', async () => {
-        await game.resetGame()
-        ui.render(game)
+    .catch((err) => {
+        console.error('Error loading game:', err)
     })
-
-    game.on('scoreUpdated', () => {
-        ui.animateScoreUpdated()
-        ui.playSound('scoreUp')
-    })
-
-    game.on('topScoreUpdated', ({ isNewTopScore }) => {
-        ui.animateTopScoreUpdated()
-        if (isNewTopScore) ui.playSound('highScore')
-    })
-
-    game.on('cellsCleared', ({ cells: [cellA, cellB], scoreIncrement }) => {
-        ui.scoreUpEffect(cellA, scoreIncrement)
-        ui.scoreUpEffect(cellB, scoreIncrement)
-        ui.playSound('pop')
-    })
-
-    game.on('lineCleared', ({ movedCells, row, scoreIncrement }) => {
-        ui.animateLineClear(movedCells)
-        ui.scoreUpEffect({ row, col: GRID_SIZE }, scoreIncrement)
-        ui.playSound('bigScoreUp')
-
-        // for (let col = 0; col < GRID_SIZE; col++) {
-        //     const cell = { row: movedCells[0]?.to.row ?? 0, col }
-        //     ui.scoreUpEffect(cell, scoreIncrement)
-        // }
-    })
-
-    game.on('deadEnd', () => {
-        ui.playSound('gameOver')
-        ui.render(game)
-    })
-})

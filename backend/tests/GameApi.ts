@@ -44,12 +44,12 @@ test.after(() => {
     server.kill()
 })
 
-test('GET /api/game returns 404 when no game instance exists', async () => {
+void test('GET /api/game returns 404 when no game instance exists', async () => {
     const response = await fetch(`${BASE_URL}/api/game`)
     assert.strictEqual(response.status, 404)
 })
 
-test('POST /api/game creates a new nxn game instance', async () => {
+void test('POST /api/game creates a new nxn game instance', async () => {
     const response = await fetch(`${BASE_URL}/api/game`, { method: 'POST' })
     assert.strictEqual(response.status, 201)
 
@@ -65,7 +65,7 @@ test('POST /api/game creates a new nxn game instance', async () => {
     }
 })
 
-test('GET /api/game retrieves the previously created game instance', async () => {
+void test('GET /api/game retrieves the previously created game instance', async () => {
     const response = await fetch(`${BASE_URL}/api/game`)
     assert.strictEqual(response.status, 200)
 
@@ -73,7 +73,7 @@ test('GET /api/game retrieves the previously created game instance', async () =>
     assert.strictEqual(body.score, 0)
 })
 
-test('PUT /api/game updates the score and grid of the existing game instance', async () => {
+void test('PUT /api/game updates the score and grid of the existing game instance', async () => {
     const response = await fetch(`${BASE_URL}/api/game`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -85,7 +85,7 @@ test('PUT /api/game updates the score and grid of the existing game instance', a
     assert.strictEqual(body.score, 42)
 })
 
-test('PUT /api/game rejects an invalid score', async () => {
+void test('PUT /api/game rejects an invalid score', async () => {
     const response = await fetch(`${BASE_URL}/api/game`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -94,7 +94,7 @@ test('PUT /api/game rejects an invalid score', async () => {
     assert.strictEqual(response.status, 400)
 })
 
-test('PUT /api/game rejects a decreasing score', async () => {
+void test('PUT /api/game rejects a decreasing score', async () => {
     const response = await fetch(`${BASE_URL}/api/game`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -103,7 +103,7 @@ test('PUT /api/game rejects a decreasing score', async () => {
     assert.strictEqual(response.status, 400)
 })
 
-test('DELETE /api/game removes the single game instance', async () => {
+void test('DELETE /api/game removes the single game instance', async () => {
     const deleteResponse = await fetch(`${BASE_URL}/api/game`, { method: 'DELETE' })
     assert.strictEqual(deleteResponse.status, 204)
 
@@ -111,7 +111,7 @@ test('DELETE /api/game removes the single game instance', async () => {
     assert.strictEqual(getResponse.status, 404)
 })
 
-test('PUT /api/game returns 404 when no game instance exists', async () => {
+void test('PUT /api/game returns 404 when no game instance exists', async () => {
     const response = await fetch(`${BASE_URL}/api/game`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

@@ -1,0 +1,13 @@
+.grid {
+    --board-size: round(down, min(100cqw, 100cqh), calc(24px * var(--grid-size)));
+
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--grid-size), 1fr);
+    grid-template-rows: repeat(var(--grid-size), 1fr);
+    gap: 0px;
+
+    width: var(--board-size);
+    height: var(--board-size);
+    aspect-ratio: 1 / 1;
+}
