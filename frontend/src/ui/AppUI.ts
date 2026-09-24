@@ -9,6 +9,7 @@ import { Enemy, EnemyType } from './Enemy'
 export class AppUI extends EventEmitter {
     private readonly grid: Grid
     private readonly enemy: Enemy
+    private readonly gameOverOverlay: HTMLDivElement
 
     public constructor() {
         super()
@@ -27,6 +28,23 @@ export class AppUI extends EventEmitter {
             this.emit('cellClick', row, col)
         })
 
+        this.gameOverOverlay = document.createElement('div')
+        this.gameOverOverlay.classList.add('game-over-overlay')
+
+        const gameOverTitle = document.createElement('h2')
+        gameOverTitle.classList.add('game-over-title')
+        gameOverTitle.textContent = 'Game Over'
+
+        const newGameButton = document.createElement('button')
+        newGameButton.classList.add('new-game-button')
+        newGameButton.type = 'button'
+        newGameButton.textContent = 'New Game'
+        newGameButton.addEventListener('click', () => this.emit('newGame'))
+
+        this.gameOverOverlay.appendChild(gameOverTitle)
+        this.gameOverOverlay.appendChild(newGameButton)
+        gridContainer.appendChild(this.gameOverOverlay)
+
         const sidePanel = document.createElement('div')
         sidePanel.classList.add('side-panel')
         root.appendChild(sidePanel)
@@ -37,6 +55,7 @@ export class AppUI extends EventEmitter {
 
     public renderGame(game: GameInstance): void {
         this.grid.updateCells(game.grid)
+        this.gameOverOverlay.classList.remove('is-visible')
     }
 
     public setCellSelected(cell: Pos, selected: boolean): void {
@@ -55,5 +74,6 @@ export class AppUI extends EventEmitter {
 
     public async gameOver(): Promise<void> {
         await this.grid.gameOver()
+        this.gameOverOverlay.classList.add('is-visible')
     }
 }

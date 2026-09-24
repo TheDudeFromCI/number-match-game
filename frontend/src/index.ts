@@ -45,6 +45,10 @@ Game.loadGame(events)
         app.addListener('cellClick', async (row: number, col: number) => {
             await game.clickCell({ row, col })
         })
+
+        app.addListener('newGame', async () => {
+            await game.resetGame()
+        })
     })
     .catch((err) => {
         console.error('Error loading game:', err)

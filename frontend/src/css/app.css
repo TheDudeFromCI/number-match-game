@@ -8,6 +8,7 @@
 
 .grid-container {
     container-type: size;
+    position: relative;
 
     display: flex;
     justify-content: center;
@@ -21,4 +22,60 @@
 .side-panel {
     flex: 0 0 30%;
     height: 100%;
+}
+
+.game-over-overlay {
+    position: absolute;
+    inset: 0;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.25rem;
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease-in;
+
+    background: radial-gradient(circle at center, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+.game-over-overlay.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.game-over-title {
+    font-size: clamp(1rem, 8cqw, 16rem);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #ffec7a;
+    text-shadow:
+        0 0 10px rgba(255, 236, 122, 0.5),
+        0 0 2px rgba(255, 236, 122, 0.9);
+}
+
+.new-game-button {
+    font-size: clamp(0.7rem, 6.1cqw, 8rem);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #fdfdfd;
+
+    border: 2px solid #4af3c9;
+    border-radius: 0;
+    background: linear-gradient(180deg, #154246 0%, #0f2e32 100%);
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    box-shadow:
+        0 0 0 2px rgba(0, 0, 0, 0.45),
+        0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+.new-game-button:hover {
+    background: linear-gradient(180deg, #1b565b 0%, #154246 100%);
+}
+
+.new-game-button:active {
+    transform: translateY(1px);
 }
